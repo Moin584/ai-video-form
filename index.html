@@ -54,7 +54,7 @@
             font-size: 14px;
         }
         
-        textarea, input[type="file"], input[type="number"], select, input[type="email"] {
+        textarea, select, input[type="email"], input[type="number"] {
             width: 100%;
             padding: 12px;
             border: 2px solid #e0e0e0;
@@ -67,54 +67,56 @@
         textarea {
             resize: vertical;
             min-height: 100px;
-            font-family: 'Segoe UI', sans-serif;
         }
         
-        textarea:focus, input:focus, select:focus {
+        textarea:focus, select:focus, input:focus {
             outline: none;
             border-color: #667eea;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
         
-        .file-input-wrapper {
-            position: relative;
-            overflow: hidden;
+        /* Image Upload - SIMPLE FIX */
+        .image-upload-wrapper {
+            margin-bottom: 10px;
+        }
+        
+        .image-upload-button {
             display: inline-block;
-            width: 100%;
-        }
-        
-        input[type="file"] {
-            position: absolute;
-            left: -9999px;
-        }
-        
-        .file-input-label {
-            display: block;
-            padding: 12px;
+            padding: 15px 30px;
             background: #f5f5f5;
             border: 2px dashed #667eea;
             border-radius: 6px;
-            text-align: center;
             cursor: pointer;
-            transition: all 0.3s;
             color: #667eea;
-            font-weight: 500;
+            font-weight: 600;
+            transition: all 0.3s;
+            width: 100%;
+            text-align: center;
         }
         
-        .file-input-label:hover {
+        .image-upload-button:hover {
             background: #f0f0ff;
         }
         
-        input[type="file"]:focus + .file-input-label {
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        .image-upload-button.selected {
+            background: #e8f5e9;
+            border-color: #4caf50;
+            color: #2e7d32;
         }
         
-        .file-name {
-            display: block;
-            color: #666;
-            font-size: 12px;
+        #imageInput {
+            display: none;
+        }
+        
+        .image-status {
             margin-top: 8px;
+            font-size: 13px;
+            color: #666;
+        }
+        
+        .image-status.selected {
+            color: #4caf50;
+            font-weight: 600;
         }
         
         .form-row {
@@ -256,23 +258,23 @@
                 <div class="hint">We'll send your generated video here</div>
             </div>
             
-            <!-- Reference Image -->
+            <!-- Reference Image - FIXED & SIMPLIFIED -->
             <div class="form-group">
                 <label>
                     Reference Image <span class="required">*</span>
                 </label>
-                <div class="file-input-wrapper">
+                <div class="image-upload-wrapper">
                     <input 
                         type="file" 
-                        id="image" 
-                        name="image"
+                        id="imageInput"
                         accept="image/jpeg,image/png,image/gif"
                         required
                     >
-                    <label for="image" class="file-input-label" id="fileLabel">
-                        📸 Click to upload reference image<br><small>(JPG, PNG, GIF - up to 50MB)</small>
-                    </label>
-                    <span class="file-name" id="fileName"></span>
+                    <div class="image-upload-button" id="uploadButton">
+                        📸 Click to upload reference image
+                        <br><small>(JPG, PNG, GIF - up to 50MB)</small>
+                    </div>
+                    <div class="image-status" id="imageStatus"></div>
                 </div>
                 <div class="hint">Upload a reference image for the visual style</div>
             </div>
@@ -366,15 +368,41 @@
     </div>
     
     <script>
-    // Handle file input display
-    document.getElementById('image').addEventListener('change', function(e) {
-        const fileName = e.target.files[0]?.name || '';
-        document.getElementById('fileName').textContent = fileName 
-            ? `✅ Selected: ${fileName}` 
-            : '';
+    // Image upload handler - FIXED VERSION
+    const imageInput = document.getElementById('imageInput');
+    const uploadButton = document.getElementById('uploadButton');
+    const imageStatus = document.getElementById('imageStatus');
+
+    // Click on button triggers file input
+    uploadButton.addEventListener('click', function() {
+        imageInput.click();
+    });
+
+    // File selection handler - THIS WAS THE BUG
+    imageInput.addEventListener('change', function(e) {
+        console.log('File changed:', e.target.files);
+        
+        if (this.files && this.files.length > 0) {
+            const fileName = this.files[0].name;
+            const fileSize = (this.files[0].size / 1024 / 1024).toFixed(2);
+            
+            // Update display
+            uploadButton.classList.add('selected');
+            uploadButton.textContent = '✅ ' + fileName;
+            imageStatus.classList.add('selected');
+            imageStatus.textContent = 'File size: ' + fileSize + ' MB';
+            
+            console.log('File selected:', fileName);
+        } else {
+            // Reset if no file
+            uploadButton.classList.remove('selected');
+            uploadButton.textContent = '📸 Click to upload reference image\n(JPG, PNG, GIF - up to 50MB)';
+            imageStatus.classList.remove('selected');
+            imageStatus.textContent = '';
+        }
     });
     
-    // Handle form submission
+    // Form submission
     document.getElementById('videoForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         
@@ -383,6 +411,13 @@
         const successMessage = document.getElementById('successMessage');
         const videoForm = document.getElementById('videoForm');
         const userEmail = document.getElementById('email').value;
+        
+        // Check if image is selected
+        if (!imageInput.files || imageInput.files.length === 0) {
+            statusDiv.className = 'status show error';
+            statusDiv.innerHTML = '❌ <strong>Error:</strong><br><small>Please select an image file first!</small>';
+            return;
+        }
         
         try {
             // Show loading status
@@ -394,17 +429,19 @@
             const formData = new FormData();
             formData.append('concept', document.getElementById('concept').value);
             formData.append('email', userEmail);
-            formData.append('image', document.getElementById('image').files[0]);
+            formData.append('image', imageInput.files[0]);
             formData.append('duration', document.getElementById('duration').value);
             formData.append('aspect_ratio', document.getElementById('aspectRatio').value);
             formData.append('style', document.getElementById('style').value);
             formData.append('platform', document.getElementById('platform').value);
             formData.append('camera_movement', document.getElementById('cameraMovement').value);
             
-            // IMPORTANT: Replace with your actual n8n webhook URL
-               const webhookUrl ='https://lordnew.app.n8n.cloud/webhook/ai-video-form';
+            console.log('Form data prepared, sending to webhook...');
             
-            if (webhookUrl === 'https://lordnew.app.n8n.cloud/webhook/ai-video-form';
+            // IMPORTANT: Replace with your actual n8n webhook URL
+            const webhookUrl = 'https://lordnew.app.n8n.cloud/webhook-test/ai-video-form';
+            
+            if (webhookUrl === 'https://lordnew.app.n8n.cloud/webhook-test/ai-video-form') {
                 throw new Error('Webhook URL not configured. Please update the form with your n8n webhook URL.');
             }
             
@@ -413,11 +450,14 @@
                 body: formData
             });
             
+            console.log('Response status:', response.status);
+            
             if (!response.ok) {
                 throw new Error(`Server error: ${response.status}. Please try again.`);
             }
             
             const data = await response.json();
+            console.log('Success response:', data);
             
             // Hide form and show success message
             statusDiv.style.display = 'none';
@@ -426,6 +466,7 @@
             successMessage.style.display = 'block';
             
         } catch (error) {
+            console.error('Error:', error);
             statusDiv.className = 'status show error';
             statusDiv.innerHTML = `
                 ❌ <strong>Error:</strong><br>
