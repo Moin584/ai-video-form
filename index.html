@@ -75,13 +75,12 @@
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
         
-        /* Image Upload - SIMPLE FIX */
         .image-upload-wrapper {
             margin-bottom: 10px;
         }
         
         .image-upload-button {
-            display: inline-block;
+            display: block;
             padding: 15px 30px;
             background: #f5f5f5;
             border: 2px dashed #667eea;
@@ -258,7 +257,7 @@
                 <div class="hint">We'll send your generated video here</div>
             </div>
             
-            <!-- Reference Image - FIXED & SIMPLIFIED -->
+            <!-- Reference Image -->
             <div class="form-group">
                 <label>
                     Reference Image <span class="required">*</span>
@@ -368,35 +367,27 @@
     </div>
     
     <script>
-    // Image upload handler - FIXED VERSION
+    // Image upload handler
     const imageInput = document.getElementById('imageInput');
     const uploadButton = document.getElementById('uploadButton');
     const imageStatus = document.getElementById('imageStatus');
 
-    // Click on button triggers file input
     uploadButton.addEventListener('click', function() {
         imageInput.click();
     });
 
-    // File selection handler - THIS WAS THE BUG
-    imageInput.addEventListener('change', function(e) {
-        console.log('File changed:', e.target.files);
-        
+    imageInput.addEventListener('change', function() {
         if (this.files && this.files.length > 0) {
             const fileName = this.files[0].name;
             const fileSize = (this.files[0].size / 1024 / 1024).toFixed(2);
             
-            // Update display
             uploadButton.classList.add('selected');
             uploadButton.textContent = '✅ ' + fileName;
             imageStatus.classList.add('selected');
             imageStatus.textContent = 'File size: ' + fileSize + ' MB';
-            
-            console.log('File selected:', fileName);
         } else {
-            // Reset if no file
             uploadButton.classList.remove('selected');
-            uploadButton.textContent = '📸 Click to upload reference image\n(JPG, PNG, GIF - up to 50MB)';
+            uploadButton.innerHTML = '📸 Click to upload reference image<br><small>(JPG, PNG, GIF - up to 50MB)</small>';
             imageStatus.classList.remove('selected');
             imageStatus.textContent = '';
         }
@@ -412,7 +403,6 @@
         const videoForm = document.getElementById('videoForm');
         const userEmail = document.getElementById('email').value;
         
-        // Check if image is selected
         if (!imageInput.files || imageInput.files.length === 0) {
             statusDiv.className = 'status show error';
             statusDiv.innerHTML = '❌ <strong>Error:</strong><br><small>Please select an image file first!</small>';
@@ -420,12 +410,10 @@
         }
         
         try {
-            // Show loading status
             statusDiv.className = 'status show loading';
             statusDiv.innerHTML = '<span class="spinner"></span>Uploading and processing...';
             submitBtn.disabled = true;
             
-            // Prepare form data
             const formData = new FormData();
             formData.append('concept', document.getElementById('concept').value);
             formData.append('email', userEmail);
@@ -436,43 +424,25 @@
             formData.append('platform', document.getElementById('platform').value);
             formData.append('camera_movement', document.getElementById('cameraMovement').value);
             
-            console.log('Form data prepared, sending to webhook...');
-            
-            // IMPORTANT: Replace with your actual n8n webhook URL
-            const webhookUrl = https://lordnew.app.n8n.cloud/webhook-test/ai-video-form';
-            
-            if (webhookUrl === https://lordnew.app.n8n.cloud/webhook-test/ai-video-form') {
-                throw new Error('Webhook URL not configured. Please update the form with your n8n webhook URL.');
-            }
+            const webhookUrl = 'https://lordnew.app.n8n.cloud/webhook-test/ai-video-form';
             
             const response = await fetch(webhookUrl, {
                 method: 'POST',
                 body: formData
             });
             
-            console.log('Response status:', response.status);
-            
             if (!response.ok) {
-                throw new Error(`Server error: ${response.status}. Please try again.`);
+                throw new Error('Server error: ' + response.status);
             }
             
-            const data = await response.json();
-            console.log('Success response:', data);
-            
-            // Hide form and show success message
             statusDiv.style.display = 'none';
             videoForm.style.display = 'none';
             document.getElementById('displayEmail').textContent = userEmail;
             successMessage.style.display = 'block';
             
         } catch (error) {
-            console.error('Error:', error);
             statusDiv.className = 'status show error';
-            statusDiv.innerHTML = `
-                ❌ <strong>Error:</strong><br>
-                <small>${error.message}</small><br>
-                <small style="display:block; margin-top: 10px;">Please check the webhook URL configuration or try again.</small>
-            `;
+            statusDiv.innerHTML = '❌ <strong>Error:</strong><br><small>' + error.message + '</small><br><small style="display:block; margin-top: 10px;">Check webhook URL or try again.</small>';
             submitBtn.disabled = false;
         }
     });
