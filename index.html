@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Video Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        textarea, input[type="file"], input[type="number"], select, input[type="email"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        
+        textarea:focus, input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+        
+        input[type="file"] {
+            position: absolute;
+            left: -9999px;
+        }
+        
+        .file-input-label {
+            display: block;
+            padding: 12px;
+            background: #f5f5f5;
+            border: 2px dashed #667eea;
+            border-radius: 6px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: #667eea;
+            font-weight: 500;
+        }
+        
+        .file-input-label:hover {
+            background: #f0f0ff;
+        }
+        
+        input[type="file"]:focus + .file-input-label {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .file-name {
+            display: block;
+            color: #666;
+            font-size: 12px;
+            margin-top: 8px;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+        
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .status.show {
+            display: block;
+        }
+        
+        .status.loading {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .status.success {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+        
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(25, 118, 210, 0.2);
+            border-top-color: #1976d2;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .hint {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+        
+        .required {
+            color: #d32f2f;
+        }
+
+        .success-message {
+            margin-top: 20px;
+            padding: 20px;
+            background: #e8f5e9;
+            border-left: 4px solid #388e3c;
+            border-radius: 4px;
+        }
+
+        .success-message h3 {
+            color: #388e3c;
+            margin-bottom: 10px;
+        }
+
+        .success-message p {
+            color: #1b5e20;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 AI Video Generator</h1>
+        <p class="subtitle">Create stunning AI videos with Nano Banana 2 & Veo 3.1</p>
+        
+        <form id="videoForm">
+            <!-- Concept Input -->
+            <div class="form-group">
+                <label for="concept">
+                    Video Concept <span class="required">*</span>
+                </label>
+                <textarea 
+                    id="concept" 
+                    name="concept" 
+                    placeholder="Describe what you want in your video. Example: A ninja warrior jumping through a cyberpunk city at night with neon lights"
+                    required
+                ></textarea>
+                <div class="hint">Be descriptive! More detail = better results</div>
+            </div>
+            
+            <!-- Email for Results -->
+            <div class="form-group">
+                <label for="email">
+                    Email (for results) <span class="required">*</span>
+                </label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    name="email" 
+                    placeholder="your@email.com"
+                    required
+                >
+                <div class="hint">We'll send your generated video here</div>
+            </div>
+            
+            <!-- Reference Image -->
+            <div class="form-group">
+                <label>
+                    Reference Image <span class="required">*</span>
+                </label>
+                <div class="file-input-wrapper">
+                    <input 
+                        type="file" 
+                        id="image" 
+                        name="image"
+                        accept="image/jpeg,image/png,image/gif"
+                        required
+                    >
+                    <label for="image" class="file-input-label" id="fileLabel">
+                        📸 Click to upload reference image<br><small>(JPG, PNG, GIF - up to 50MB)</small>
+                    </label>
+                    <span class="file-name" id="fileName"></span>
+                </div>
+                <div class="hint">Upload a reference image for the visual style</div>
+            </div>
+            
+            <!-- Duration -->
+            <div class="form-group">
+                <label for="duration">
+                    Video Duration (seconds) <span class="required">*</span>
+                </label>
+                <input 
+                    type="number" 
+                    id="duration" 
+                    name="duration" 
+                    value="15" 
+                    min="5" 
+                    max="60" 
+                    required
+                >
+                <div class="hint">Between 5 and 60 seconds</div>
+            </div>
+            
+            <!-- Optional Settings Row 1 -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="aspectRatio">Aspect Ratio</label>
+                    <select id="aspectRatio" name="aspectRatio">
+                        <option value="16:9">16:9 (YouTube)</option>
+                        <option value="9:16">9:16 (TikTok/Reels)</option>
+                        <option value="1:1">1:1 (Square)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="style">Style</label>
+                    <select id="style" name="style">
+                        <option value="cinematic">Cinematic</option>
+                        <option value="animation">Animation</option>
+                        <option value="realistic">Realistic</option>
+                        <option value="painterly">Painterly</option>
+                        <option value="cyberpunk">Cyberpunk</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Optional Settings Row 2 -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="platform">Platform</label>
+                    <select id="platform" name="platform">
+                        <option value="youtube">YouTube</option>
+                        <option value="tiktok">TikTok</option>
+                        <option value="instagram">Instagram</option>
+                        <option value="linkedin">LinkedIn</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="cameraMovement">Camera Movement</label>
+                    <select id="cameraMovement" name="cameraMovement">
+                        <option value="dynamic">Dynamic</option>
+                        <option value="pan">Pan</option>
+                        <option value="zoom">Zoom</option>
+                        <option value="static">Static</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Submit Button -->
+            <button type="submit" id="submitBtn">✨ Generate Video</button>
+            
+            <!-- Status Message -->
+            <div class="status" id="status"></div>
+        </form>
+
+        <!-- Success Message (hidden by default) -->
+        <div id="successMessage" style="display: none;">
+            <div class="success-message">
+                <h3>✅ Video Generation Started!</h3>
+                <p>
+                    Your video is being generated. This typically takes 2-5 minutes.<br><br>
+                    <strong>You will receive an email at:</strong> <span id="displayEmail"></span><br><br>
+                    The email will contain:
+                    <ul style="margin-top: 10px; margin-left: 20px;">
+                        <li>Your generated video (MP4 format)</li>
+                        <li>Reference image used</li>
+                        <li>Generation statistics</li>
+                    </ul>
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+    // Handle file input display
+    document.getElementById('image').addEventListener('change', function(e) {
+        const fileName = e.target.files[0]?.name || '';
+        document.getElementById('fileName').textContent = fileName 
+            ? `✅ Selected: ${fileName}` 
+            : '';
+    });
+    
+    // Handle form submission
+    document.getElementById('videoForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const statusDiv = document.getElementById('status');
+        const submitBtn = document.getElementById('submitBtn');
+        const successMessage = document.getElementById('successMessage');
+        const videoForm = document.getElementById('videoForm');
+        const userEmail = document.getElementById('email').value;
+        
+        try {
+            // Show loading status
+            statusDiv.className = 'status show loading';
+            statusDiv.innerHTML = '<span class="spinner"></span>Uploading and processing...';
+            submitBtn.disabled = true;
+            
+            // Prepare form data
+            const formData = new FormData();
+            formData.append('concept', document.getElementById('concept').value);
+            formData.append('email', userEmail);
+            formData.append('image', document.getElementById('image').files[0]);
+            formData.append('duration', document.getElementById('duration').value);
+            formData.append('aspect_ratio', document.getElementById('aspectRatio').value);
+            formData.append('style', document.getElementById('style').value);
+            formData.append('platform', document.getElementById('platform').value);
+            formData.append('camera_movement', document.getElementById('cameraMovement').value);
+            
+            // IMPORTANT: Replace with your actual n8n webhook URL
+            const webhookUrl = 'REPLACE_WITH_YOUR_N8N_WEBHOOK_URL';
+            
+            if (webhookUrl === 'REPLACE_WITH_YOUR_N8N_WEBHOOK_URL') {
+                throw new Error('Webhook URL not configured. Please update the form with your n8n webhook URL.');
+            }
+            
+            const response = await fetch(webhookUrl, {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Server error: ${response.status}. Please try again.`);
+            }
+            
+            const data = await response.json();
+            
+            // Hide form and show success message
+            statusDiv.style.display = 'none';
+            videoForm.style.display = 'none';
+            document.getElementById('displayEmail').textContent = userEmail;
+            successMessage.style.display = 'block';
+            
+        } catch (error) {
+            statusDiv.className = 'status show error';
+            statusDiv.innerHTML = `
+                ❌ <strong>Error:</strong><br>
+                <small>${error.message}</small><br>
+                <small style="display:block; margin-top: 10px;">Please check the webhook URL configuration or try again.</small>
+            `;
+            submitBtn.disabled = false;
+        }
+    });
+    </script>
+</body>
+</html>
